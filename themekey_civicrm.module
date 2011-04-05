@@ -1,0 +1,130 @@
+<?php
+// $Id:$
+
+/**
+ * @file
+ *   provides additional CiviCRM related properties for module ThemeKey.
+ *   @see themekey.module
+ *
+ * @author Tom Kirkpatrick | SystemSeed
+ *   @see http://drupal.org/user/305669
+ */
+
+/**
+ * Implements hook_themekey_properties().
+ *
+ * Provides additional properties for module ThemeKey:
+ * - civicrm:contribution_page
+ *
+ * @return
+ *   array of themekey properties and mapping functions
+ */
+function themekey_civicrm_themekey_properties() {
+
+  // Attributes for properties
+  $attributes = array();
+
+  $attributes['civicrm:contribution:id'] = array(
+    'description' => t("CiviCRM: Contribution Page ID - The ID of the CiviCRM Contribution Page currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
+  $attributes['civicrm:contribution:type'] = array(
+    'description' => t("CiviCRM: Contribution Type - The type of Contribution Page currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
+
+  // Mapping functions
+  //
+  // These properties require some extra logic to be set.
+  // So we delegate to mapping functions which will only be called
+  // right when property occurs in a Theme Switching Rule.
+  $maps = array();
+  $maps[] = array('src'       => 'system:dummy',
+                  'dst'       => 'civicrm:contribution:id',
+                  'callback'  => 'themekey_civicrm_dummy2contribution_page_id');
+  $maps[] = array('src'       => 'system:dummy',
+                  'dst'       => 'civicrm:contribution:type',
+                  'callback'  => 'themekey_civicrm_dummy2contribution_type');
+                  
+  return array('attributes' => $attributes, 'maps' => $maps);
+}
+
+// Mapping functions
+
+/**
+ * ThemeKey mapping function to set a
+ * ThemeKey property's value (destination)
+ * with the aid of another ThemeKey property (source).
+ *
+ * src: system:dummy
+ * dst: civicrm:contribution_page_id
+ *
+ * @param $dummy
+ *   string containing current value of ThemeKey property system:dummy
+ *
+ * @return
+ *   id of the contribution page currently being viewed
+ *   or NULL if no value could be mapped
+ */
+function themekey_civicrm_dummy2contribution_page_id($dummy) {
+  if (!civicrm_initialize()) {
+    return NULL;
+  }
+  if (arg(0) == 'civicrm' && arg(1) == 'contribute' && arg(2) =='transact') {
+    if (!empty($_GET['id'])) {
+      $contribution_page_id = $_GET['id'];
+    }
+    elseif (($qfKey = $_REQUEST['qfKey']) && ($data = $_SESSION['CiviCRM']['CRM_Contribute_Controller_Contribution_'. $qfKey])) {
+      if (!empty($data['id'])) {
+        $contribution_page_id = $data['id'];
+      }
+    }
+    else {
+      require_once 'CRM/Core/session.php';
+      $session = CRM_Core_Session::singleton( );
+      $contribution_page_id = $session->get('pastContributionID');
+    }
+  }
+  return !empty($contribution_page_id)? $contribution_page_id : NULL;
+}
+
+/**
+ * ThemeKey mapping function to set a
+ * ThemeKey property's value (destination)
+ * with the aid of another ThemeKey property (source).
+ *
+ * src: system:dummy
+ * dst: civicrm:contribution_page_id
+ *
+ * @param $dummy
+ *   string containing current value of ThemeKey property system:dummy
+ *
+ * @return
+ *   id of the contribution page type currently being viewed
+ *   or NULL if no value could be mapped
+ */
+function themekey_civicrm_dummy2contribution_type($dummy) {
+  $contribution_page_id = themekey_civicrm_dummy2contribution_page_id(NULL);
+  
+  if ($page = _themekey_civicrm_contribution_page_load($contribution_page_id)) {
+    $contribution_type_id = $page->contribution_type_id;
+ }
+  return !empty($contribution_type_id)? $contribution_type_id : NULL;
+}
+
+/**
+ * Helper function to load details of a CiviCRM contribution Page.
+ */
+function _themekey_civicrm_contribution_page_load($contribution_id) {
+  if (!civicrm_initialize()) {
+    return NULL;
+  }
+  require_once('CRM/Core/DAO.php');
+  $query = "SELECT contribution_type_id FROM civicrm_contribution_page WHERE id = %1 ORDER BY title asc;";
+  $params = array(
+    1 => array( (int)$contribution_id, 'Integer' ),
+  );
+  $dao = CRM_Core_DAO::executeQuery( $query, $params, true, 'CRM_Contribute_DAO_ContributionPage' );
+  $dao->fetch();
+  return $dao;
+}
