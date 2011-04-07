@@ -80,7 +80,7 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
       }
     }
     else {
-      require_once 'CRM/Core/session.php';
+      require_once 'CRM/Core/Session.php';
       $session = CRM_Core_Session::singleton( );
       $contribution_page_id = $session->get('pastContributionID');
     }
