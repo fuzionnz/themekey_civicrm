@@ -2,6 +2,6 @@
 
 name = "ThemeKey CiviCRM Integration"
 description = "Provides additional CiviCRM related properties for ThemeKey"
-core = 6.x
+core = 7.x
 dependencies[] = themekey
 package = ThemeKey
