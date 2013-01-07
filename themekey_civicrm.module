@@ -70,7 +70,8 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
   if (!civicrm_initialize()) {
     return NULL;
   }
-  if (arg(0) == 'civicrm' && arg(1) == 'contribute' && arg(2) =='transact') {
+  $acceptable_paths = _themekey_civicrm_get_contribution_paths();
+  if(array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
     if (!empty($_GET['id'])) {
       $contribution_page_id = $_GET['id'];
     }
@@ -127,4 +128,28 @@ function _themekey_civicrm_contribution_page_load($contribution_id) {
   $dao = CRM_Core_DAO::executeQuery( $query, $params, true, 'CRM_Contribute_DAO_ContributionPage' );
   $dao->fetch();
   return $dao;
+}
+
+/**
+ * Helper function to return a list of contribution-related 
+ * civicrm q paths.
+ **/
+function _themekey_civicrm_get_contribution_paths() {
+  return array(
+    // standard URL
+    'civicrm/contribute/transact',
+    // Users visiting a personal campaign page
+    'civicrm/pcp/info',
+    // Users creating theirown personal campaign page (pageId)
+    'civicrm/contribute/campaign',
+    // These are from ./CRM/Contribute/xml/Menu/Contribute.xml 
+    // (not sure how exactly they are accessed).
+    'civicrm/contribute/additionalinfo',
+    'civicrm/contribute/unsubscribe',
+    'civicrm/contribute/onbehalf',
+    'civicrm/contribute/updatebilling',
+    'civicrm/contribute/updaterecur',
+    'civicrm/contribute/subscriptionstatus'
+  );
+
 }
