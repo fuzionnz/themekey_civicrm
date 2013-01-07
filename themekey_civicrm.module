@@ -70,14 +70,22 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
   if (!civicrm_initialize()) {
     return NULL;
   }
+  $qfKey = NULL;
+  $session_data = NULL;
+  if(array_key_exists('qfKey', $_REQUEST)) {
+    $qfKey = $_REQUEST['qfKey'];
+    if(array_key_exists('CRM_Contribute_Controller_Contribution_'. $qfKey, $_SESSION['CiviCRM'])) {
+      $session_data = $_SESSION['CiviCRM']['CRM_Contribute_Controller_Contribution_'. $qfKey];
+    }
+  }
   $acceptable_paths = _themekey_civicrm_get_contribution_paths();
   if(array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
     if (!empty($_GET['id'])) {
       $contribution_page_id = $_GET['id'];
     }
-    elseif (($qfKey = $_REQUEST['qfKey']) && ($data = $_SESSION['CiviCRM']['CRM_Contribute_Controller_Contribution_'. $qfKey])) {
-      if (!empty($data['id'])) {
-        $contribution_page_id = $data['id'];
+    elseif (!is_null($session_data)) {
+      if (!empty($session_data['id'])) {
+        $contribution_page_id = $session_data['id'];
       }
     }
     else {
