@@ -32,7 +32,10 @@ function themekey_civicrm_themekey_properties() {
     'description' => t("CiviCRM: Contribution Type - The type of Contribution Page currently being viewed."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
-
+  $attributes['civicrm:event:id'] = array(
+    'description' => t("CiviCRM: Event ID - The of the CiviCRM Event currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
   // Mapping functions
   //
   // These properties require some extra logic to be set.
@@ -45,7 +48,10 @@ function themekey_civicrm_themekey_properties() {
   $maps[] = array('src'       => 'system:dummy',
                   'dst'       => 'civicrm:contribution:type',
                   'callback'  => 'themekey_civicrm_dummy2contribution_type');
-                  
+  $maps[] = array('src'       => 'system:dummy',
+                  'dst'       => 'civicrm:event:id',
+                  'callback'  => 'themekey_civicrm_dummy2event_id');
+
   return array('attributes' => $attributes, 'maps' => $maps);
 }
 
@@ -95,6 +101,54 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
     }
   }
   return !empty($contribution_page_id)? $contribution_page_id : NULL;
+}
+
+/**
+ * ThemeKey mapping function to set a
+ * ThemeKey property's value (destination)
+ * with the aid of another ThemeKey property (source).
+ *
+ * src: system:dummy
+ * dst: civicrm:event_id
+ *
+ * @param $dummy
+ *   string containing current value of ThemeKey property system:dummy
+ *
+ * @return
+ *   id of the event currently being viewed
+ *   or NULL if no value could be mapped
+ */
+function themekey_civicrm_dummy2event_id($dummy) {
+  $event_id = NULL;
+  if (!civicrm_initialize()) {
+    return NULL;
+  }
+  $qfKey = NULL;
+  $session_data = NULL;
+  if(array_key_exists('qfKey', $_REQUEST)) {
+    $qfKey = $_REQUEST['qfKey'];
+    if(array_key_exists('CRM_Event_Page_EventInfo', $_SESSION['CiviCRM'])) {
+      $session_data = $_SESSION['CiviCRM']['CRM_Event_Page_EventInfo'];
+    }
+  }
+  $acceptable_paths = _themekey_civicrm_get_event_paths();
+  if(array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
+    if (!empty($_GET['id'])) {
+      $event_id = $_GET['id'];
+    }
+    elseif (!is_null($session_data)) {
+      if (!empty($session_data['id'])) {
+        $event_id = $session_data['id'];
+      }
+    }
+    else {
+      require_once 'CRM/Core/Session.php';
+      $session = CRM_Core_Session::singleton( );
+      $event_id = $session->get('pastEventID');
+    }
+  }
+  dsm("Found: $event_id");
+  return !empty($event_id)? $event_id : NULL;
 }
 
 /**
@@ -158,6 +212,20 @@ function _themekey_civicrm_get_contribution_paths() {
     'civicrm/contribute/updatebilling',
     'civicrm/contribute/updaterecur',
     'civicrm/contribute/subscriptionstatus'
+  );
+
+}
+
+/**
+ * Helper function to return a list of event-related
+ * civicrm q paths.
+ **/
+function _themekey_civicrm_get_event_paths() {
+  return array(
+    // standard URL
+    'civicrm/event/info',
+    // registering
+    'civicrm/event/register',
   );
 
 }
