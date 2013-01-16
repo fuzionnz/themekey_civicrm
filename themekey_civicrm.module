@@ -147,7 +147,6 @@ function themekey_civicrm_dummy2event_id($dummy) {
       $event_id = $session->get('pastEventID');
     }
   }
-  dsm("Found: $event_id");
   return !empty($event_id)? $event_id : NULL;
 }
 
