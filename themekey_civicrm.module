@@ -91,7 +91,7 @@ function _themekey_civicrm_entity_load($entity_type, $id) {
  * @return string
  *   id of contribution page
  */
-function themekey_civicrm_dummy2contribution_page_id($dummy) {
+function themekey_civicrm_dummy2contribution_page_id() {
   if (!civicrm_initialize()) {
     return NULL;
   }
@@ -128,7 +128,7 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
  * @return string|null
  *   id of the event
  */
-function themekey_civicrm_dummy2event_id($dummy) {
+function themekey_civicrm_dummy2event_id() {
   $event_id = NULL;
   if (!civicrm_initialize()) {
     return NULL;
@@ -177,12 +177,12 @@ function themekey_civicrm_dummy2event_id($dummy) {
  *   id of the event page
  */
 function themekey_civicrm_dummy2contribution_page_type() {
-  $contribution_page_id = themekey_civicrm_dummy2contribution_page_id(NULL);
-
-  if ($page = _themekey_civicrm_entity_load('ContributionPage', $contribution_page_id)) {
-    $contribution_page_type_id = $page['contribution_type_id'];
+  if ($contribution_page_id = themekey_civicrm_dummy2contribution_page_id(NULL)) {
+    if ($page = _themekey_civicrm_entity_load('ContributionPage', $contribution_page_id)) {
+      $contribution_page_type_id = $page['contribution_type_id'];
+    }
+    return !empty($contribution_page_type_id) ? $contribution_page_type_id : NULL;
   }
-  return !empty($contribution_page_type_id) ? $contribution_page_type_id : NULL;
 }
 
 /**
@@ -192,12 +192,12 @@ function themekey_civicrm_dummy2contribution_page_type() {
  *   Id of the contribution page being viewed.
  */
 function themekey_civicrm_dummy2event_type() {
-  $event_id = themekey_civicrm_dummy2event_id(NULL);
-
-  if ($event = _themekey_civicrm_entity_load('Event', $event_id)) {
-    $event_type_id = $event['event_type_id'];
+  if ($event_id = themekey_civicrm_dummy2event_id()) {
+    if ($event = _themekey_civicrm_entity_load('Event', $event_id)) {
+      $event_type_id = $event['event_type_id'];
+    }
+    return !empty($event_type_id) ? $event_type_id : NULL;
   }
-  return !empty($event_type_id) ? $event_type_id : NULL;
 }
 
 /**
