@@ -64,6 +64,28 @@ function themekey_civicrm_themekey_properties() {
 }
 
 /**
+ * Helper function to load details of a CiviCRM entity.
+ */
+function _themekey_civicrm_entity_load($entity_type, $id) {
+  if (!civicrm_initialize()) {
+    return NULL;
+  }
+  try {
+    $result = civicrm_api3($entity_type, 'get', [
+      'id' => $id,
+      'sequential' => 1,
+    ]);
+
+    if (!empty($result['values'][0])) {
+      return $result['values'][0];
+    }
+  }
+  catch (Exception $e) {
+    watchdog('themekey_civicrm', 'API exception: %message', ['%message' => $e->getMessage()], WATCHDOG_ERROR);
+  }
+}
+
+/**
  * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
  * @return string
@@ -146,28 +168,6 @@ function themekey_civicrm_dummy2event_id($dummy) {
     }
   }
   return !empty($event_id) ? $event_id : NULL;
-}
-
-/**
- * Helper function to load details of a CiviCRM entity.
- */
-function _themekey_civicrm_entity_load($entity_type, $id) {
-  if (!civicrm_initialize()) {
-    return NULL;
-  }
-  try {
-    $result = civicrm_api3($entity_type, 'get', [
-      'id' => $id,
-      'sequential' => 1,
-    ]);
-
-    if (!empty($result['values'][0])) {
-      return $result['values'][0];
-    }
-  }
-  catch (Exception $e) {
-    watchdog('themekey_civicrm', 'API exception: %message', ['%message' => $e->getMessage()], WATCHDOG_ERROR);
-  }
 }
 
 /**
