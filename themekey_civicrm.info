@@ -1,7 +1,6 @@
-; $Id:$
-
 name = "ThemeKey CiviCRM Integration"
 description = "Provides additional CiviCRM related properties for ThemeKey"
 core = 7.x
 dependencies[] = themekey
+dependencies[] = civicrm
 package = ThemeKey

@@ -2,11 +2,7 @@
 
 /**
  * @file
- *   provides additional CiviCRM related properties for module ThemeKey.
- *   @see themekey.module
- *
- * @author Tom Kirkpatrick | SystemSeed
- *   @see http://drupal.org/user/305669
+ * Provides additional CiviCRM related properties for module ThemeKey.
  */
 
 /**
@@ -15,9 +11,8 @@
  * Provides additional properties for module ThemeKey:
  * - civicrm:contribution_page:id
  * - civicrm:contribution_page:type
- *
- * @return
- *   array of themekey properties and mapping functions
+ * - civicrm:event:id
+ * - civicrm:event:type
  */
 function themekey_civicrm_themekey_properties() {
   // Attributes for properties.
@@ -39,44 +34,40 @@ function themekey_civicrm_themekey_properties() {
     'description' => t("CiviCRM: Event Type - The type of the CiviCRM Event currently being viewed."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
-  // Mapping functions
-  //
+
   // These properties require some extra logic to be set.
   // So we delegate to mapping functions which will only be called
   // right when property occurs in a Theme Switching Rule.
   $maps = array();
-  $maps[] = array('src'       => 'system:dummy',
-                  'dst'       => 'civicrm:contribution_page:id',
-                  'callback'  => 'themekey_civicrm_dummy2contribution_page_id');
-  $maps[] = array('src'       => 'system:dummy',
-                  'dst'       => 'civicrm:contribution_page:type',
-                  'callback'  => 'themekey_civicrm_dummy2contribution_page_type');
-  $maps[] = array('src'       => 'system:dummy',
-                  'dst'       => 'civicrm:event:id',
-                  'callback'  => 'themekey_civicrm_dummy2event_id');
-  $maps[] = array('src'       => 'system:dummy',
-                  'dst'       => 'civicrm:event:type',
-                  'callback'  => 'themekey_civicrm_dummy2event_type');
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:contribution_page:id',
+    'callback'  => 'themekey_civicrm_dummy2contribution_page_id',
+  );
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:contribution_page:type',
+    'callback'  => 'themekey_civicrm_dummy2contribution_page_type',
+  );
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:event:id',
+    'callback'  => 'themekey_civicrm_dummy2event_id',
+  );
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:event:type',
+    'callback'  => 'themekey_civicrm_dummy2event_type',
+  );
 
   return array('attributes' => $attributes, 'maps' => $maps);
 }
 
-// Mapping functions
-
 /**
- * ThemeKey mapping function to set a
- * ThemeKey property's value (destination)
- * with the aid of another ThemeKey property (source).
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
- * src: system:dummy
- * dst: civicrm:contribution_page_id
- *
- * @param $dummy
- *   string containing current value of ThemeKey property system:dummy
- *
- * @return
- *   id of the contribution page currently being viewed
- *   or NULL if no value could be mapped
+ * @return string
+ *   id of contribution page
  */
 function themekey_civicrm_dummy2contribution_page_id($dummy) {
   if (!civicrm_initialize()) {
@@ -84,14 +75,14 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
   }
   $qfKey = NULL;
   $session_data = NULL;
-  if(array_key_exists('qfKey', $_REQUEST)) {
+  if (array_key_exists('qfKey', $_REQUEST)) {
     $qfKey = $_REQUEST['qfKey'];
-    if (array_key_exists('CRM_Contribute_Controller_Contribution_'. $qfKey, $_SESSION['CiviCRM'])) {
-      $session_data = $_SESSION['CiviCRM']['CRM_Contribute_Controller_Contribution_'. $qfKey];
+    if (array_key_exists('CRM_Contribute_Controller_Contribution_' . $qfKey, $_SESSION['CiviCRM'])) {
+      $session_data = $_SESSION['CiviCRM']['CRM_Contribute_Controller_Contribution_' . $qfKey];
     }
   }
   $acceptable_paths = _themekey_civicrm_get_contribution_paths();
-  if(array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
+  if (array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
     if (!empty($_GET['id'])) {
       $contribution_page_id = $_GET['id'];
     }
@@ -102,27 +93,18 @@ function themekey_civicrm_dummy2contribution_page_id($dummy) {
     }
     else {
       require_once 'CRM/Core/Session.php';
-      $session = CRM_Core_Session::singleton( );
+      $session = CRM_Core_Session::singleton();
       $contribution_page_id = $session->get('pastContributionID');
     }
   }
-  return !empty($contribution_page_id)? $contribution_page_id : NULL;
+  return !empty($contribution_page_id) ? $contribution_page_id : NULL;
 }
 
 /**
- * ThemeKey mapping function to set a
- * ThemeKey property's value (destination)
- * with the aid of another ThemeKey property (source).
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
- * src: system:dummy
- * dst: civicrm:event_id
- *
- * @param $dummy
- *   string containing current value of ThemeKey property system:dummy
- *
- * @return
- *   id of the event currently being viewed
- *   or NULL if no value could be mapped
+ * @return string|null
+ *   id of the event
  */
 function themekey_civicrm_dummy2event_id($dummy) {
   $event_id = NULL;
@@ -131,15 +113,15 @@ function themekey_civicrm_dummy2event_id($dummy) {
   }
   $qfKey = NULL;
   $session_data = NULL;
-  if(array_key_exists('qfKey', $_REQUEST)) {
+  if (array_key_exists('qfKey', $_REQUEST)) {
     $qfKey = $_REQUEST['qfKey'];
     // Should this work? It doesn't on validation page.
-    if (array_key_exists('CRM_Event_Controller_Registration_'. $qfKey, $_SESSION['CiviCRM'])) {
-      $session_data = $_SESSION['CiviCRM']['CRM_Event_Controller_Registration_'. $qfKey];
+    if (array_key_exists('CRM_Event_Controller_Registration_' . $qfKey, $_SESSION['CiviCRM'])) {
+      $session_data = $_SESSION['CiviCRM']['CRM_Event_Controller_Registration_' . $qfKey];
     }
   }
   $acceptable_paths = _themekey_civicrm_get_event_paths();
-  if(array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
+  if (array_key_exists('q', $_GET) && in_array($_GET['q'], $acceptable_paths)) {
     if (!empty($_GET['id'])) {
       $event_id = $_GET['id'];
     }
@@ -150,7 +132,7 @@ function themekey_civicrm_dummy2event_id($dummy) {
     }
     else {
       require_once 'CRM/Core/Session.php';
-      $session = CRM_Core_Session::singleton( );
+      $session = CRM_Core_Session::singleton();
       $event_id = $session->get('pastEventID');
     }
     // Hail Mary fallback: look for _entryURL.
@@ -163,7 +145,7 @@ function themekey_civicrm_dummy2event_id($dummy) {
       $event_id = $p_query['query']['id'];
     }
   }
-  return !empty($event_id)? $event_id : NULL;
+  return !empty($event_id) ? $event_id : NULL;
 }
 
 /**
@@ -175,9 +157,9 @@ function _themekey_civicrm_entity_load($entity_type, $id) {
   }
   try {
     $result = civicrm_api3($entity_type, 'get', [
-                           'id' => $id,
-                           'sequential' => 1
-                         ]);
+      'id' => $id,
+      'sequential' => 1,
+    ]);
 
     if (!empty($result['values'][0])) {
       return $result['values'][0];
@@ -189,19 +171,10 @@ function _themekey_civicrm_entity_load($entity_type, $id) {
 }
 
 /**
- * ThemeKey mapping function to set a
- * ThemeKey property's value (destination)
- * with the aid of another ThemeKey property (source).
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
- * src: system:dummy
- * dst: civicrm:contribution_page_id
- *
- * @param $dummy
- *   string containing current value of ThemeKey property system:dummy
- *
- * @return
- *   id of the contribution page type currently being viewed
- *   or NULL if no value could be mapped
+ * @return string|null
+ *   id of the event page
  */
 function themekey_civicrm_dummy2contribution_page_type() {
   $contribution_page_id = themekey_civicrm_dummy2contribution_page_id(NULL);
@@ -209,23 +182,14 @@ function themekey_civicrm_dummy2contribution_page_type() {
   if ($page = _themekey_civicrm_entity_load('ContributionPage', $contribution_page_id)) {
     $contribution_page_type_id = $page['contribution_type_id'];
   }
-  return !empty($contribution_page_type_id)? $contribution_page_type_id : NULL;
+  return !empty($contribution_page_type_id) ? $contribution_page_type_id : NULL;
 }
 
 /**
- * ThemeKey mapping function to set a
- * ThemeKey property's value (destination)
- * with the aid of another ThemeKey property (source).
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
- * src: system:dummy
- * dst: civicrm:contribution_page_id
- *
- * @param $dummy
- *   string containing current value of ThemeKey property system:dummy
- *
- * @return
- *   id of the contribution page type currently being viewed
- *   or NULL if no value could be mapped
+ * @return string|null
+ *   Id of the contribution page being viewed.
  */
 function themekey_civicrm_dummy2event_type() {
   $event_id = themekey_civicrm_dummy2event_id(NULL);
@@ -233,20 +197,19 @@ function themekey_civicrm_dummy2event_type() {
   if ($event = _themekey_civicrm_entity_load('Event', $event_id)) {
     $event_type_id = $event['event_type_id'];
   }
-  return !empty($event_type_id)? $event_type_id : NULL;
+  return !empty($event_type_id) ? $event_type_id : NULL;
 }
 
 /**
- * Helper function to return a list of contribution-related
- * civicrm q paths.
- **/
+ * Helper function to return a list of contribution-related civicrm paths.
+ */
 function _themekey_civicrm_get_contribution_paths() {
   return array(
-    // standard URL
+    // Standard URL.
     'civicrm/contribute/transact',
-    // Users visiting a personal campaign page
+    // Users visiting a personal campaign page.
     'civicrm/pcp/info',
-    // Users creating theirown personal campaign page (pageId)
+    // Users creating theirown personal campaign page (pageId).
     'civicrm/contribute/campaign',
     // These are from ./CRM/Contribute/xml/Menu/Contribute.xml
     // (not sure how exactly they are accessed).
@@ -255,19 +218,16 @@ function _themekey_civicrm_get_contribution_paths() {
     'civicrm/contribute/onbehalf',
     'civicrm/contribute/updatebilling',
     'civicrm/contribute/updaterecur',
-    'civicrm/contribute/subscriptionstatus'
+    'civicrm/contribute/subscriptionstatus',
   );
 }
 
 /**
- * Helper function to return a list of event-related
- * civicrm q paths.
- **/
+ * Helper function to return a list of event-related civicrm paths.
+ */
 function _themekey_civicrm_get_event_paths() {
   return array(
-    // standard URL
     'civicrm/event/info',
-    // registering
     'civicrm/event/register',
   );
 }
