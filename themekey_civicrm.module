@@ -13,26 +13,30 @@
  * Implements hook_themekey_properties().
  *
  * Provides additional properties for module ThemeKey:
- * - civicrm:contribution_page
+ * - civicrm:contribution_page:id
+ * - civicrm:contribution_page:type
  *
  * @return
  *   array of themekey properties and mapping functions
  */
 function themekey_civicrm_themekey_properties() {
-
-  // Attributes for properties
+  // Attributes for properties.
   $attributes = array();
 
-  $attributes['civicrm:contribution:id'] = array(
+  $attributes['civicrm:contribution_page:id'] = array(
     'description' => t("CiviCRM: Contribution Page ID - The ID of the CiviCRM Contribution Page currently being viewed."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
-  $attributes['civicrm:contribution:type'] = array(
+  $attributes['civicrm:contribution_page:type'] = array(
     'description' => t("CiviCRM: Contribution Type - The type of Contribution Page currently being viewed."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
   $attributes['civicrm:event:id'] = array(
-    'description' => t("CiviCRM: Event ID - The of the CiviCRM Event currently being viewed."),
+    'description' => t("CiviCRM: Event ID - The ID of the CiviCRM Event currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
+  $attributes['civicrm:event:type'] = array(
+    'description' => t("CiviCRM: Event Type - The type of the CiviCRM Event currently being viewed."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
   // Mapping functions
@@ -42,14 +46,17 @@ function themekey_civicrm_themekey_properties() {
   // right when property occurs in a Theme Switching Rule.
   $maps = array();
   $maps[] = array('src'       => 'system:dummy',
-                  'dst'       => 'civicrm:contribution:id',
+                  'dst'       => 'civicrm:contribution_page:id',
                   'callback'  => 'themekey_civicrm_dummy2contribution_page_id');
   $maps[] = array('src'       => 'system:dummy',
-                  'dst'       => 'civicrm:contribution:type',
-                  'callback'  => 'themekey_civicrm_dummy2contribution_type');
+                  'dst'       => 'civicrm:contribution_page:type',
+                  'callback'  => 'themekey_civicrm_dummy2contribution_page_type');
   $maps[] = array('src'       => 'system:dummy',
                   'dst'       => 'civicrm:event:id',
                   'callback'  => 'themekey_civicrm_dummy2event_id');
+  $maps[] = array('src'       => 'system:dummy',
+                  'dst'       => 'civicrm:event:type',
+                  'callback'  => 'themekey_civicrm_dummy2event_type');
 
   return array('attributes' => $attributes, 'maps' => $maps);
 }
@@ -126,8 +133,9 @@ function themekey_civicrm_dummy2event_id($dummy) {
   $session_data = NULL;
   if(array_key_exists('qfKey', $_REQUEST)) {
     $qfKey = $_REQUEST['qfKey'];
-    if(array_key_exists('CRM_Event_Page_EventInfo', $_SESSION['CiviCRM'])) {
-      $session_data = $_SESSION['CiviCRM']['CRM_Event_Page_EventInfo'];
+    // Should this work? It doesn't on validation page.
+    if (array_key_exists('CRM_Event_Controller_Registration_'. $qfKey, $_SESSION['CiviCRM'])) {
+      $session_data = $_SESSION['CiviCRM']['CRM_Event_Controller_Registration_'. $qfKey];
     }
   }
   $acceptable_paths = _themekey_civicrm_get_event_paths();
@@ -145,8 +153,39 @@ function themekey_civicrm_dummy2event_id($dummy) {
       $session = CRM_Core_Session::singleton( );
       $event_id = $session->get('pastEventID');
     }
+    // Hail Mary fallback: look for _entryURL.
+    if (is_null($event_id) && isset($_SESSION['CiviCRM']['entryURL'])) {
+      // http://yfnz.fudev.co.nz/civicrm/event/register?reset=1&amp;action=preview&amp;id=79
+      $url = $_SESSION['CiviCRM']['entryURL'];
+      $url = str_replace('&amp;', '&', $url);
+      $p_url = parse_url($url);
+      $p_query = drupal_parse_url($p_url['path'] . '?' . urldecode($p_url['query']));
+      $event_id = $p_query['query']['id'];
+    }
   }
   return !empty($event_id)? $event_id : NULL;
+}
+
+/**
+ * Helper function to load details of a CiviCRM entity.
+ */
+function _themekey_civicrm_entity_load($entity_type, $id) {
+  if (!civicrm_initialize()) {
+    return NULL;
+  }
+  try {
+    $result = civicrm_api3($entity_type, 'get', [
+                           'id' => $id,
+                           'sequential' => 1
+                         ]);
+
+    if (!empty($result['values'][0])) {
+      return $result['values'][0];
+    }
+  }
+  catch (Exception $e) {
+    watchdog('themekey_civicrm', 'API exception: %message', ['%message' => $e->getMessage()], WATCHDOG_ERROR);
+  }
 }
 
 /**
@@ -164,34 +203,41 @@ function themekey_civicrm_dummy2event_id($dummy) {
  *   id of the contribution page type currently being viewed
  *   or NULL if no value could be mapped
  */
-function themekey_civicrm_dummy2contribution_type($dummy) {
+function themekey_civicrm_dummy2contribution_page_type() {
   $contribution_page_id = themekey_civicrm_dummy2contribution_page_id(NULL);
-  
-  if ($page = _themekey_civicrm_contribution_page_load($contribution_page_id)) {
-    $contribution_type_id = $page->contribution_type_id;
- }
-  return !empty($contribution_type_id)? $contribution_type_id : NULL;
-}
 
-/**
- * Helper function to load details of a CiviCRM contribution Page.
- */
-function _themekey_civicrm_contribution_page_load($contribution_id) {
-  if (!civicrm_initialize()) {
-    return NULL;
+  if ($page = _themekey_civicrm_entity_load('ContributionPage', $contribution_page_id)) {
+    $contribution_page_type_id = $page['contribution_type_id'];
   }
-  require_once('CRM/Core/DAO.php');
-  $query = "SELECT contribution_type_id FROM civicrm_contribution_page WHERE id = %1 ORDER BY title asc;";
-  $params = array(
-    1 => array( (int)$contribution_id, 'Integer' ),
-  );
-  $dao = CRM_Core_DAO::executeQuery( $query, $params, true, 'CRM_Contribute_DAO_ContributionPage' );
-  $dao->fetch();
-  return $dao;
+  return !empty($contribution_page_type_id)? $contribution_page_type_id : NULL;
 }
 
 /**
- * Helper function to return a list of contribution-related 
+ * ThemeKey mapping function to set a
+ * ThemeKey property's value (destination)
+ * with the aid of another ThemeKey property (source).
+ *
+ * src: system:dummy
+ * dst: civicrm:contribution_page_id
+ *
+ * @param $dummy
+ *   string containing current value of ThemeKey property system:dummy
+ *
+ * @return
+ *   id of the contribution page type currently being viewed
+ *   or NULL if no value could be mapped
+ */
+function themekey_civicrm_dummy2event_type() {
+  $event_id = themekey_civicrm_dummy2event_id(NULL);
+
+  if ($event = _themekey_civicrm_entity_load('Event', $event_id)) {
+    $event_type_id = $event['event_type_id'];
+  }
+  return !empty($event_type_id)? $event_type_id : NULL;
+}
+
+/**
+ * Helper function to return a list of contribution-related
  * civicrm q paths.
  **/
 function _themekey_civicrm_get_contribution_paths() {
@@ -202,7 +248,7 @@ function _themekey_civicrm_get_contribution_paths() {
     'civicrm/pcp/info',
     // Users creating theirown personal campaign page (pageId)
     'civicrm/contribute/campaign',
-    // These are from ./CRM/Contribute/xml/Menu/Contribute.xml 
+    // These are from ./CRM/Contribute/xml/Menu/Contribute.xml
     // (not sure how exactly they are accessed).
     'civicrm/contribute/additionalinfo',
     'civicrm/contribute/unsubscribe',
