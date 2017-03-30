@@ -13,6 +13,8 @@
  * - civicrm:contribution_page:type
  * - civicrm:event:id
  * - civicrm:event:type
+  * - civicrm:campaign:id
+ * - civicrm:campaign:type
  */
 function themekey_civicrm_themekey_properties() {
   // Attributes for properties.
@@ -32,6 +34,14 @@ function themekey_civicrm_themekey_properties() {
   );
   $attributes['civicrm:event:type'] = array(
     'description' => t("CiviCRM: Event Type - The type of the CiviCRM Event currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
+  $attributes['civicrm:campaign:id'] = array(
+    'description' => t("CiviCRM: Campaign ID - The ID of the Campaign connected to the CiviCRM Event currently being viewed."),
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
+  $attributes['civicrm:campaign:type'] = array(
+    'description' => t("CiviCRM: Campaign Type - The type of Campaign that the CiviCRM Event currently being viewed is connected to."),
     'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
   );
 
@@ -59,6 +69,17 @@ function themekey_civicrm_themekey_properties() {
     'dst'       => 'civicrm:event:type',
     'callback'  => 'themekey_civicrm_dummy2event_type',
   );
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:campaign:id',
+    'callback'  => 'themekey_civicrm_dummy2campaign_id',
+  );
+  $maps[] = array(
+    'src'       => 'system:dummy',
+    'dst'       => 'civicrm:campaign:type',
+    'callback'  => 'themekey_civicrm_dummy2campaign_type',
+  );
+
 
   return array('attributes' => $attributes, 'maps' => $maps);
 }
@@ -174,7 +195,7 @@ function themekey_civicrm_dummy2event_id() {
  * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
  * @return string|null
- *   id of the event page
+ *   Contribution page type
  */
 function themekey_civicrm_dummy2contribution_page_type() {
   if ($contribution_page_id = themekey_civicrm_dummy2contribution_page_id(NULL)) {
@@ -189,7 +210,7 @@ function themekey_civicrm_dummy2contribution_page_type() {
  * Map ThemeKey property's value (destination) from ThemeKey property (source).
  *
  * @return string|null
- *   Id of the contribution page being viewed.
+ *   Event type id
  */
 function themekey_civicrm_dummy2event_type() {
   if ($event_id = themekey_civicrm_dummy2event_id()) {
@@ -197,6 +218,42 @@ function themekey_civicrm_dummy2event_type() {
       $event_type_id = $event['event_type_id'];
     }
     return !empty($event_type_id) ? $event_type_id : NULL;
+  }
+}
+
+/**
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
+ *
+ * @return string|null
+ *   Id of the campaign connected to the page being viewed.
+ */
+function themekey_civicrm_dummy2campaign_id() {
+  if ($event_id = themekey_civicrm_dummy2event_id()) {
+    if ($event = _themekey_civicrm_entity_load('Event', $event_id)) {
+      $campaign_id = $event['campaign_id'];
+    }
+    return !empty($campaign_id) ? $campaign_id : NULL;
+  }
+  if ($contribution_page_id = themekey_civicrm_dummy2contribution_page_id()) {
+    if ($page = _themekey_civicrm_entity_load('ContributionPage', $contribution_page_id)) {
+      $campaign_id = $page['campaign_id'];
+    }
+    return !empty($campaign_id) ? $campaign_id : NULL;
+  }
+}
+
+/**
+ * Map ThemeKey property's value (destination) from ThemeKey property (source).
+ *
+ * @return string|null
+ *   Id of the campaign type being viewed.
+ */
+function themekey_civicrm_dummy2campaign_type() {
+  if ($campaign_id = themekey_civicrm_dummy2campaign_id()) {
+    if ($campaign = _themekey_civicrm_entity_load('Campaign', $campaign_id)) {
+      $campaign_type_id = $campaign['campaign_type_id'];
+    }
+    return !empty($campaign_type_id) ? $campaign_type_id : NULL;
   }
 }
 
